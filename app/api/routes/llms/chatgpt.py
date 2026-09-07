@@ -6,7 +6,7 @@ router = APIRouter(prefix="/llms/chatgpt", tags=["llms/chatgpt"])
 
 
 @router.post(
-    "/query",
+    "/",
     response_model=ChatGPTQueryResponse,
     status_code=status.HTTP_200_OK,
     summary="Query ChatGPT via headless automation",
