@@ -27,7 +27,7 @@ async def _save_conversation(
     out_dir = f"/tmp/{brand_name or 'chatgpt'}"
     os.makedirs(out_dir, exist_ok=True)
 
-    conversation = await tab.select('ol[aria-label="Conversation"]', timeout=5)
+    conversation = await tab.select('ol[aria-label="Conversation"]', timeout=10)
 
     if return_type == ReturnType.html:
         if conversation:
