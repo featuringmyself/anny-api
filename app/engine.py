@@ -18,25 +18,35 @@ STOP_SELECTOR = (
     "button[aria-label='Stop streaming'], "
     "button[aria-label='Stop generating']"
 )
+CONVERSATION_SELECTOR = (
+    "#thread, "
+    "div:has(> [data-testid^='conversation-turn-']), "
+    "ol[aria-label='Conversation']"
+)
 
 
 async def _save_conversation(
     tab, return_type: ReturnType, brand_name: str | None
 ) -> ChatGPTQueryResponse:
     stamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    out_dir = f"/tmp/{brand_name or 'chatgpt'}"
+    out_dir = f"tmp/{brand_name or 'chatgpt'}"
     os.makedirs(out_dir, exist_ok=True)
 
-    conversation = await tab.select('ol[aria-label="Conversation"]', timeout=10)
+    conversation = await tab.select(CONVERSATION_SELECTOR, timeout=10)
+
+    # Save full-page HTML whenever the conversation element is not found
+    if not conversation:
+        html = await tab.get_content()
+        html_path = f"{out_dir}/{stamp}_chatgpt.html"
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(html)
 
     if return_type == ReturnType.html:
         if conversation:
             html = await conversation.get_html()
-        else:
-            html = await tab.get_content()
-        path = f"{out_dir}/{stamp}_chatgpt.html"
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(html)
+            html_path = f"{out_dir}/{stamp}_chatgpt.html"
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(html)
         return ChatGPTQueryResponse(content=html)
 
     path = f"{out_dir}/{stamp}_chatgpt.png"
