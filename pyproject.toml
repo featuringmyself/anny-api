@@ -1,0 +1,11 @@
+[project]
+name = "anny-api"
+version = "0.1.0"
+description = "API for Anny app"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.141.1",
+    "nodriver>=0.50.3",
+]
+entrypoint = "main:app"
