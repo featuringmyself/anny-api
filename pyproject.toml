@@ -8,4 +8,6 @@ dependencies = [
     "fastapi[standard]>=0.141.1",
     "nodriver>=0.50.3",
 ]
-entrypoint = "main:app"
+
+[tool.fastapi]
+entrypoint = "app.main:app"

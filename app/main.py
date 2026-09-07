@@ -1,7 +1,6 @@
 from fastapi import FastAPI
+from app.api.routes.llms import chatgpt
 
 app = FastAPI()
 
-@app.get("/")
-async def root():
-    return {"message": "Hello Anny"}
+app.include_router(chatgpt.router)

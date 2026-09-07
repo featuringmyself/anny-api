@@ -9,6 +9,11 @@ SEND_SELECTOR = (
     "button[aria-label='Send prompt']"
 )
 
+VOICE_SELECTOR = (
+    "button[aria-label='Start Voice'], "
+    "button[test-id='composer-speech-button'], "
+)
+
 
 async def query_chatgpt(question: str):
     browser = await nc.start()
@@ -32,8 +37,14 @@ async def query_chatgpt(question: str):
         await prompt.send_keys("\n")
     
     await tab.sleep(1)
-    await tab.wait_for(SEND_SELECTOR, timeout=10)
-    
+    try:
+        await tab.wait_for(SEND_SELECTOR, timeout=10)
+    except:
+        html = await tab.get_content()
+        with open('chatgpt.html', 'w', encoding='utf-8') as f:
+            f.write(html)
+        return html
+        
     await tab.save_screenshot()
      
     html = await tab.get_content()
@@ -42,6 +53,7 @@ async def query_chatgpt(question: str):
      
     browser.stop()
 
+    return html
 
 if __name__ == "__main__":
     # nodriver manages its own loop; asyncio.run() leaves the browser process hanging
