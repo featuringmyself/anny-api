@@ -60,7 +60,7 @@ async def _save_conversation(
 async def query_chatgpt(request: ChatGPTQueryRequest) -> ChatGPTQueryResponse:
     question = request.question
     returnType = request.returnType
-    brandName = request.brandName
+    brandName = request.brandName or None
 
     # starts a new browser instance
     browser = await nc.start()
