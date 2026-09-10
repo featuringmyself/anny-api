@@ -8,7 +8,14 @@ class GetQuestionsRequest(BaseModel):
 class ReconstructedProfile(BaseModel):
     brandName: str = Field(..., description="The brand name")
     inferredDomain: str = Field(default="", description="The inferred primary domain")
-    industry: str = Field(default="", description="Specific industry description")
+    industry: str = Field(
+        default="",
+        description="Short eyebrow-length industry label (e.g. UPSC coaching)",
+    )
+    productLine: str = Field(
+        default="",
+        description="Short product/service shelf string for the cover eyebrow",
+    )
     targetIcp: str = Field(default="", description="Target buyer persona / ICP")
     deducedUsps: list[str] = Field(default_factory=list, description="Deduced USPs")
     primaryCompetitors: list[str] = Field(
@@ -21,7 +28,13 @@ class ReconstructedProfile(BaseModel):
 
 class BrandCrisisItem(BaseModel):
     id: str = Field(..., description="Unique ID for the crisis exhibit")
-    query: str = Field(..., description="Branded prompt targeting brand trust")
+    query: str = Field(
+        ...,
+        description=(
+            "Crisis prompt: crisis-1 branded trust gate; "
+            "crisis-2/3 unbranded shelf absences"
+        ),
+    )
     archetype: str = Field(..., description="Crisis archetype")
     severity: str = Field(default="critical", description="Severity level")
     tag: str = Field(default="", description="Category/topic tag")
