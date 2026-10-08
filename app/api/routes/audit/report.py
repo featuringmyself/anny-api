@@ -1,15 +1,10 @@
 from fastapi import APIRouter, HTTPException, status
 
-from app.engine import capture_audit_answer
 from app.schemas.get_questions import GetQuestionsRequest
 from app.schemas.report import ReportRequest, VisibilityReport
 from app.services.analyze_answer import AnswerAnalysis, BatchAnalyzeError, batch_analyze_all
+from app.services.capture_answer import try_capture
 from app.services.get_questions import fetch_questions
-from app.services.html_extract import (
-    CaptureQualityError,
-    extract_assistant_text,
-    validate_capture_text,
-)
 from app.services.synthesize_report import synthesize_report
 
 router = APIRouter(prefix="/report", tags=["report"])
@@ -61,37 +56,15 @@ def _capture_error_analysis(item_id: str, detail: str) -> AnswerAnalysis:
     )
 
 
-async def _try_capture(brand_name: str, query: str) -> dict:
-    """Capture once; on failure retry once with a fresh empty thread."""
-    last_exc: Exception | None = None
-    for _ in range(2):
-        try:
-            capture = await capture_audit_answer(brand_name, query)
-            answer_text = validate_capture_text(
-                extract_assistant_text(capture["html"])
-            )
-            return {
-                "answer_text": answer_text,
-                "screenshot_path": capture["screenshot_path"],
-                "capture_error": None,
-            }
-        except (CaptureQualityError, RuntimeError) as exc:
-            last_exc = exc
-    return {
-        "answer_text": "",
-        "screenshot_path": "",
-        "capture_error": str(last_exc) if last_exc else "Could not capture audit answer",
-    }
-
-
 @router.post(
     "/",
     response_model=VisibilityReport,
     status_code=status.HTTP_200_OK,
     summary="Generate brand AI visibility report",
     description=(
-        "Orchestrates question discovery, isolated per-prompt HTML+PNG capture, "
-        "one batched analyze call, grounded score/SOV, and one batched synthesize call."
+        "Convenience orchestrator that chains get_questions → capture → analyze → "
+        "synthesize. Prefer the individual /audits/* endpoints when you need to "
+        "run or retry each step separately."
     ),
 )
 async def generate_report(request: ReportRequest) -> VisibilityReport:
@@ -112,7 +85,7 @@ async def generate_report(request: ReportRequest) -> VisibilityReport:
         archetype: str = "",
         severity: str = "",
     ) -> None:
-        result = await _try_capture(brand_name, query)
+        result = await try_capture(brand_name, query)
         capture_items.append(
             {
                 "id": item_id,
