@@ -12,16 +12,24 @@ router = APIRouter(prefix="/capture", tags=["capture"])
     status_code=status.HTTP_200_OK,
     summary="Capture one buyer prompt answer",
     description=(
-        "Runs a single buyer prompt in an empty ChatGPT thread and returns "
-        "extracted answer text plus a PNG evidence path. Retries once on failure."
+        "Runs a single buyer prompt in an empty ChatGPT thread. "
+        "returnType=html → answerText + htmlPath; "
+        "returnType=png → screenshotPath; "
+        "returnType=all (default) → both. Retries once on failure."
     ),
 )
 async def capture_prompt(request: CaptureRequest) -> CaptureResponse:
-    result = await try_capture(request.brandName, request.prompt)
+    result = await try_capture(
+        request.brandName,
+        request.prompt,
+        return_type=request.returnType,
+    )
     return CaptureResponse(
         id=request.id,
         prompt=request.prompt,
+        returnType=request.returnType,
         answerText=result["answer_text"],
+        htmlPath=result["html_path"],
         screenshotPath=result["screenshot_path"],
         captureError=result["capture_error"],
     )

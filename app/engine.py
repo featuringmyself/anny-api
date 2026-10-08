@@ -29,6 +29,7 @@ CONVERSATION_SELECTOR = (
 
 class AuditCapture(TypedDict):
     html: str
+    html_path: str
     screenshot_path: str
 
 
@@ -102,10 +103,17 @@ async def _ensure_empty_thread(tab) -> None:
     await tab.sleep(2)
 
 
-async def capture_audit_answer(brand_name: str, prompt: str) -> AuditCapture:
+async def capture_audit_answer(
+    brand_name: str,
+    prompt: str,
+    *,
+    save_html: bool = True,
+    save_png: bool = True,
+) -> AuditCapture:
     """
-    Run one buyer prompt in an empty ChatGPT thread and save HTML + PNG
-    from that same answer only (evidence pairing, not multi-prompt memory).
+    Run one buyer prompt in an empty ChatGPT thread and optionally save
+    HTML and/or PNG from that same answer only (evidence pairing, not
+    multi-prompt memory). HTML is always captured in memory for text extract.
     """
     browser = await nc.start()
     try:
@@ -125,17 +133,25 @@ async def capture_audit_answer(brand_name: str, prompt: str) -> AuditCapture:
         else:
             html = await tab.get_content()
 
-        html_path = f"{out_dir}/{stamp}_chatgpt.html"
-        with open(html_path, "w", encoding="utf-8") as f:
-            f.write(html)
+        html_path = ""
+        if save_html:
+            html_path = f"{out_dir}/{stamp}_chatgpt.html"
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(html)
 
-        screenshot_path = f"{out_dir}/{stamp}_chatgpt.png"
-        if conversation:
-            await conversation.save_screenshot(screenshot_path, format="png")
-        else:
-            await tab.save_screenshot(screenshot_path, format="png")
+        screenshot_path = ""
+        if save_png:
+            screenshot_path = f"{out_dir}/{stamp}_chatgpt.png"
+            if conversation:
+                await conversation.save_screenshot(screenshot_path, format="png")
+            else:
+                await tab.save_screenshot(screenshot_path, format="png")
 
-        return {"html": html, "screenshot_path": screenshot_path}
+        return {
+            "html": html,
+            "html_path": html_path,
+            "screenshot_path": screenshot_path,
+        }
     except RuntimeError:
         raise
     except Exception:
