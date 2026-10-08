@@ -29,6 +29,44 @@ def label_for_score(score: float) -> str:
     return "Critical"
 
 
+# Review directories are citation sources, not competitive substitutes.
+_SOV_SOURCE_BLOCKLIST = frozenset(
+    {
+        "clutch",
+        "goodfirms",
+        "g2",
+        "capterra",
+        "sortlist",
+        "designrush",
+        "clutch.co",
+        "goodfirms.co",
+    }
+)
+
+# Enterprise SIs — exclude from boutique/SMB competitive SOV unless listed as peers.
+_SOV_ENTERPRISE_SI_BLOCKLIST = frozenset(
+    {
+        "tcs",
+        "tata consultancy services",
+        "tata consultancy services (tcs)",
+        "infosys",
+        "wipro",
+        "hcltech",
+        "hcl tech",
+        "hcl technologies",
+        "accenture",
+        "cognizant",
+        "capgemini",
+        "ibm",
+        "deloitte",
+        "tech mahindra",
+        "ltimindtree",
+        "lti mindtree",
+        "persistent systems",
+    }
+)
+
+
 def _name_mentioned(name: str, analysis: AnswerAnalysis, brand_name: str) -> bool:
     name_l = name.strip().lower()
     if not name_l:
@@ -38,18 +76,48 @@ def _name_mentioned(name: str, analysis: AnswerAnalysis, brand_name: str) -> boo
     return any(name_l == c.strip().lower() for c in analysis.citedInstead)
 
 
+def _normalize_competitor_key(name: str) -> str:
+    return " ".join(name.strip().lower().split())
+
+
+def _is_sov_eligible(name: str, brand_name: str, peer_keys: set[str]) -> bool:
+    """Drop review platforms and out-of-tier enterprise SIs from competitive SOV."""
+    key = _normalize_competitor_key(name)
+    if not key or key == _normalize_competitor_key(brand_name):
+        return True
+    if key in peer_keys:
+        return True
+    if key in _SOV_SOURCE_BLOCKLIST:
+        return False
+    if key in _SOV_ENTERPRISE_SI_BLOCKLIST:
+        return False
+    # Partial match for "Tata Consultancy Services (TCS)"-style variants.
+    for blocked in _SOV_ENTERPRISE_SI_BLOCKLIST:
+        if blocked in key or key in blocked:
+            return False
+    return True
+
+
 def compute_score_and_sov(
     brand_name: str,
     crisis_analyses: list[AnswerAnalysis],
     prompt_analyses: list[AnswerAnalysis],
+    peer_competitors: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     Discovery-only visibility score + discovery-only SOV in code.
     Crisis rows are exhibits only — they must not inflate the competitive chart.
     Rows with status=error are excluded from score and SOV denominators.
+    Enterprise SIs / review platforms are excluded from SOV unless listed as peers.
     """
     # crisis_analyses kept in signature for callers; intentionally unused for metrics.
     _ = crisis_analyses
+
+    peer_keys = {
+        _normalize_competitor_key(c)
+        for c in (peer_competitors or [])
+        if (c or "").strip()
+    }
 
     discovery = [a for a in prompt_analyses if a.status != "error"]
     cited_count = sum(
@@ -68,7 +136,7 @@ def compute_score_and_sov(
     for a in discovery:
         for c in a.citedInstead:
             cleaned = (c or "").strip()
-            if cleaned:
+            if cleaned and _is_sov_eligible(cleaned, brand_name, peer_keys):
                 names.add(cleaned)
 
     sov_rows: list[ShareOfVoiceItem] = []
@@ -124,7 +192,7 @@ Website: "{profile.inferredDomain}"
 Industry (draft): "{profile.industry}"
 Product line (draft): "{profile.productLine}"
 ICP: "{profile.targetIcp}"
-Competitors: {competitors}
+Peer competitors: {competitors}
 HQ / hub: "{profile.headquartersOrHub}"
 
 FIXED METRICS (do not change these numbers — they were computed in code):
@@ -132,7 +200,7 @@ FIXED METRICS (do not change these numbers — they were computed in code):
 - totalPrompts (discovery only): {metrics["totalPrompts"]}
 - visibilityScore: {metrics["visibilityScore"]}
 - visibilityLabel: "{metrics["visibilityLabel"]}"
-- competitiveShareOfVoice (fixed):
+- competitiveShareOfVoice (fixed — peer-weighted; enterprise SIs already filtered):
 {sov_json}
 
 Per-prompt analyses (JSON):
@@ -140,25 +208,25 @@ Per-prompt analyses (JSON):
 
 Produce strict JSON only (no markdown fences) with this shape:
 {{
-  "executiveSummary": "{metrics["totalPrompts"]} buy-intent prompts tied to {profile.productLine or "the product shelf"}. Cited on {metrics["citedCount"]} of {metrics["totalPrompts"]}. Who appears instead: top competitors from analyses. One asymmetric win if any (as exception, not consolation). End with: This is the baseline.",
+  "executiveSummary": "{metrics["totalPrompts"]} buy-intent prompts tied to {profile.productLine or "the product shelf"}. Cited on {metrics["citedCount"]} of {metrics["totalPrompts"]}. Who appears instead: top PEER competitors from analyses / SOV (not out-of-market giants). One asymmetric win if any (as exception, not consolation). End with: This is the baseline.",
   "industry": "Short eyebrow-length polish of industry if draft is too long; else keep short",
-  "productLine": "Short product/service shelf polish; else keep short",
+  "productLine": "Short PEER-competitive product/service shelf polish; else keep short",
   "sprint": {{
     "headline": "From this {metrics["citedCount"]}/{metrics["totalPrompts"]} baseline to cited on the enrolment prompts named below",
     "outcomes": [
-      "Get named on [specific prompt cluster] that today lists [competitors]",
-      "Get named on [specific prompt cluster] that today lists [competitors]",
-      "Get named on [specific prompt cluster] that today lists [competitors]"
+      "Get named on [specific prompt cluster] that today lists [peer competitors]",
+      "Get named on [specific prompt cluster] that today lists [peer competitors]",
+      "Get named on [specific prompt cluster] that today lists [peer competitors]"
     ]
   }}
 }}
 
 Rules:
 - Do NOT invent or alter visibilityScore, citedCount, totalPrompts, or SOV shares.
-- executiveSummary: cold baseline brief only — prompt-set size, cited X of Y, who appears instead, optional asymmetric win as exception, "This is the baseline."
+- executiveSummary: cold baseline brief only — prompt-set size, cited X of Y, who appears instead (PEER rivals from SOV/analyses), optional asymmetric win as exception, "This is the baseline." Do not headline TCS/Infosys/Wipro-class giants unless they are true peers of this brand.
 - Sprint headline: from baseline → cited on named enrolment prompts (not "close the gap" / "build visibility").
-- Sprint outcomes: ONLY "get named on [prompt cluster] that today lists [competitors]" — three concrete lines from the analyses.
-- Keep industry and productLine short (eyebrow length).
+- Sprint outcomes: ONLY "get named on [prompt cluster] that today lists [peer competitors]" — three concrete lines from the analyses.
+- Keep industry and productLine short (eyebrow length); do not inflate with enterprise-owned shelves.
 - BANNED words/phrases: authority, footprint, leverage, journey, unlock, empower, transform, book a call, ready to, let's, close the gap, build authority, expand citation.
 '''
 
@@ -252,7 +320,12 @@ async def synthesize_report(
     prompt_analyses: list[AnswerAnalysis],
 ) -> VisibilityReport:
     profile = questions.reconstructedProfile
-    metrics = compute_score_and_sov(brand_name, crisis_analyses, prompt_analyses)
+    metrics = compute_score_and_sov(
+        brand_name,
+        crisis_analyses,
+        prompt_analyses,
+        peer_competitors=profile.primaryCompetitors,
+    )
 
     analysis_payload = [
         {

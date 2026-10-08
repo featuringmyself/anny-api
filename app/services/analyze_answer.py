@@ -62,7 +62,7 @@ Brand under audit: "{brand_name}"
 Inferred domain: "{profile.inferredDomain}"
 Industry: "{profile.industry}"
 Product line: "{profile.productLine}"
-Known competitors: {competitors}
+Known peer competitors: {competitors}
 
 Items to analyze (JSON array of {{id, kind, query, answer_text}}):
 {items_json}
@@ -74,6 +74,13 @@ Status meanings:
 - "nuanced": brand appears but with caveats, confusion, or weak positioning
 
 statusLabel style (Edukemy exhibit): "Absent · Vision Lakshya named", "Present · named in shortlist", "Nuanced · mentioned with caveats".
+
+citedInstead RULES (critical — competitive chart quality):
+- List ONLY firms/agencies that a buyer would treat as substitutes on this shortlist.
+- Prefer Known peer competitors when they appear in answer_text; put peers first.
+- EXCLUDE review/directory platforms (Clutch, GoodFirms, G2, Capterra, Sortlist, DesignRush) — they are sources, not competitors.
+- EXCLUDE out-of-tier enterprise SIs (TCS, Infosys, Wipro, HCLTech, Accenture, Cognizant, Capgemini, IBM, Deloitte, Tech Mahindra, LTIMindtree) UNLESS they are in Known peer competitors OR the brand itself is clearly that enterprise tier.
+- Cap at ~6 names; drop the least peer-relevant if the answer lists many.
 
 EXCERPT RULE (critical): Quote/compress what ChatGPT said — names, scores, shortlists, rankings.
 FORBIDDEN in excerpt/title/outcome: meta opinion ("clearly named and evaluated", "strong option", "the brand is missing from recommendations").

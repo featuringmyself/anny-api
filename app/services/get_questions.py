@@ -27,13 +27,25 @@ You must first reverse-engineer the company's identity, ICP, competitors, signat
 ### STEP 1: ENTITY REVERSE-ENGINEERING (Internal Deduction)
 Before generating prompts, deduce and reconstruct:
 1. Primary Domain & Industry: What domain do they operate on? What is their exact market vertical?
-2. Core Target ICP: Who signs the check?
-3. Primary Value Proposition & USPs / product shelf: What course, product, or service line do they sell? List concrete SKUs / enrolment drivers.
-4. Likely Competitors: Top 3–5 incumbents and nimble rivals dominating this space.
-5. Home Turf & Hub: Where are they headquartered or where is their densest customer cluster?
-6. Vulnerability Surface:
+2. Market tier: boutique / mid-market / enterprise — use headcount, typical deal size, and ICP (not marketing claims).
+3. Core Target ICP: Who signs the check? (startup founder, SMB, mid-market, enterprise CIO, etc.)
+4. Primary Value Proposition & USPs / product shelf: What course, product, or service line do they ACTUALLY win deals on at their tier? List only peer-competitive SKUs — not every buzzword on the website.
+5. Peer Competitors ONLY: Top 3–5 rivals the same buyer would shortlist alongside "{brand_name}" — similar size, price band, geography, and buying motion.
+6. Home Turf & Hub: Where are they headquartered or where is their densest customer cluster?
+7. Vulnerability Surface:
    - What words phonetically or semantically collide with "{brand_name}"?
    - Where are they most prone to skepticism (refunds, KYC, track record)?
+
+PEER COMPETITOR HARD RULES (critical — audits die when this is wrong):
+- primaryCompetitors must be REAL market peers a buyer would compare on the same shortlist.
+- NEVER list out-of-tier giants as peers of a boutique/SMB (e.g. TCS, Infosys, Wipro, HCLTech, Accenture, Cognizant, Capgemini, IBM, Deloitte as peers of a 2–50 person studio/agency).
+- NEVER list adjacent-but-different markets (pure design studios vs full-stack product shops vs enterprise SI vs SaaS product companies) unless the brand truly competes there for the same ICP.
+- If unsure, prefer local/regional same-tier agencies and known category peers over famous national brands.
+
+PRODUCT LINE HARD RULES:
+- productLine = only flagship shelves where peer-tier firms compete and win.
+- Do NOT inflate the shelf with enterprise-owned categories (cloud architecture, large-scale modernization, Fortune-500 AMC, national SI scopes) just because the site mentions "cloud" / "AI" / "DevOps".
+- For a small digital studio, prefer: web/app build for startups/SMBs, UI/UX product design, MVP/custom software, local hub shortlists — not "best cloud architecture company in India".
 
 ---
 
@@ -58,30 +70,39 @@ Good examples: "{brand_name} review", "best online GS Foundation for UPSC 2027",
 BAD: long multi-clause diligence essays, RFP paragraphs, stacked constraints, or keyword-stuffed SEO strings.
 Reject any query that reads like a consultant brief. Prefer 4–12 words when possible; never exceed ~20 words.
 
+#### PEER-SHELF RULE (critical)
+Every unbranded prompt must be a shelf where PEER-TIER firms (from primaryCompetitors) can realistically appear in ChatGPT's shortlist.
+- GOOD for a boutique Indian studio: "best web development company for startups in Noida", "best MVP development agency India", "best UI UX studio for startups Delhi NCR".
+- BAD for a boutique Indian studio: "best cloud architecture company in India", "best software modernization company in India", "best DevOps agency for enterprises" — these route to TCS/Infosys/Wipro and prove nothing about peer competition.
+- Prefer ICP + hub + service niche over national enterprise category nouns.
+- Prefer prompts where PEER incumbents own the shelf — not Fortune-500 IT services giants.
+
 #### PART A: BRAND CRISIS EXHIBITS (exactly 3 — trust + category erasure)
 
 | Slot | Type | Shape |
 |------|------|-------|
 | crisis-1 | Branded trust gate ONLY | "{{brand_name}} review" / "is {{brand_name}} legit" |
-| crisis-2 | UNBRANDED flagship shelf | e.g. "best online GS Foundation for UPSC 2027" |
+| crisis-2 | UNBRANDED flagship peer shelf | e.g. "best online GS Foundation for UPSC 2027" |
 | crisis-3 | UNBRANDED home-turf or second flagship | e.g. "best IAS coaching in Old Rajinder Nagar" |
 
-crisis-2 and crisis-3 prove category erasure when the brand is absent from the shortlist. Prefer shelves incumbents are known to own.
+crisis-2 and crisis-3 prove category erasure when the brand is absent from the shortlist. Prefer shelves PEER incumbents are known to own.
 
 #### PART B: DISCOVERY & REVENUE SHELVES (8–10 Queries — STRICTLY Unbranded)
-Map 1:1 to productLine SKUs / enrolment drivers (mentorship, essay, test series, etc.).
-Short unbranded buy-intent only. Prefer prompts where incumbents own the shelf:
+Map 1:1 to peer-competitive productLine SKUs / enrolment drivers only.
+Short unbranded buy-intent only. Prefer prompts where PEER incumbents own the shelf:
 - Own-claim / USP theft
 - Customer / proof erasure
 - Competitor conquest & switchers
 - Home-turf micro-market
 - High-intent commercial shortlist (budget/seats OK only if still short)
 
+citedCompetitorsExpected MUST be drawn from primaryCompetitors (or same peer tier). Never expect TCS/Infosys-class names for a boutique brand.
+
 ---
 
 ### PHRASING CONSTRAINTS
 - Conversational Human Phrasing: how humans naturally query chatbots.
-- Real Commercial Pain: every prompt must represent diverted enrolment / demo / shortlist demand.
+- Real Commercial Pain: every prompt must represent diverted enrolment / demo / shortlist demand among PEERS.
 - NO long multi-clause diligence questions.
 - NO salesy or pitch language in headlines, deks, or distress angles — state who gets the shortlist today and who does not.
 
@@ -96,10 +117,10 @@ Output strict JSON matching the following structure:
     "brandName": "{brand_name}",
     "inferredDomain": "example.com",
     "industry": "Short eyebrow label (e.g. UPSC coaching)",
-    "productLine": "Short shelf string (e.g. Integrated mentorship · GS · Optional)",
+    "productLine": "Short PEER-competitive shelf string only",
     "targetIcp": "Target buyer persona",
     "deducedUsps": ["USP 1", "USP 2"],
-    "primaryCompetitors": ["Competitor A", "Competitor B", "Competitor C"],
+    "primaryCompetitors": ["Peer A", "Peer B", "Peer C"],
     "headquartersOrHub": "City / Region"
   }},
   "brandCrisisHeadline": "Cold headline of trust failure or category erasure (no pitch)",
@@ -117,12 +138,12 @@ Output strict JSON matching the following structure:
     }},
     {{
       "id": "crisis-2",
-      "query": "Unbranded flagship shelf prompt (NO {brand_name})",
+      "query": "Unbranded flagship PEER shelf prompt (NO {brand_name})",
       "archetype": "Category Erasure",
       "severity": "critical",
       "tag": "Flagship shelf",
       "title": "Short title for the absence",
-      "outcome": "Projected: {brand_name} missing · incumbents fill the shortlist",
+      "outcome": "Projected: {brand_name} missing · peer incumbents fill the shortlist",
       "theDistressAngle": "Flagship enrolment shortlist never sees {brand_name}."
     }},
     {{
@@ -132,22 +153,22 @@ Output strict JSON matching the following structure:
       "severity": "critical",
       "tag": "Home turf",
       "title": "Short title for the absence",
-      "outcome": "Projected: {brand_name} missing · local/category rivals named",
+      "outcome": "Projected: {brand_name} missing · local/category peers named",
       "theDistressAngle": "Home-turf buy intent routes to competitors."
     }}
   ],
   "queriesHeadline": "Prompt audit · [N] queries",
-  "queriesIntro": "Buy-intent queries that route deal flow to competitors.",
+  "queriesIntro": "Buy-intent queries that route deal flow to peer competitors.",
   "queries": [
     {{
       "id": "q1",
-      "query": "Short unbranded buyer prompt (NO BRAND NAME)",
+      "query": "Short unbranded buyer prompt on a PEER shelf (NO BRAND NAME)",
       "intent": "The buyer job being executed",
       "archetype": "Own Claim Theft | Customer Proof Erasure | Competitor Conquest | Home Turf | Commercial RFP",
       "severity": "critical | high | standard",
       "tag": "Own claim | Home turf | Conquest | RFP | Category",
-      "citedCompetitorsExpected": ["Competitor A", "Competitor B"],
-      "outcome": "Projected outcome (e.g., '{brand_name} missing · Competitors fill the table')",
+      "citedCompetitorsExpected": ["Peer A", "Peer B"],
+      "outcome": "Projected outcome (e.g., '{brand_name} missing · Peer competitors fill the table')",
       "theDistressAngle": "Factual commercial stake — diverted enrolment/demo demand."
     }}
   ]
